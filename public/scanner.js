@@ -21,6 +21,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 3. Función para iniciar el escáner
     async function startScanner() {
+        // En scanner.js, justo después de startScanner():
+        setTimeout(() => {
+        if (!html5QrCode.isScanning) {
+        handleCameraError(new Error("El escáner no inició automáticamente"));
+        }
+    }, 5000);
         try {
             // Obtener lista de cámaras disponibles
             const cameras = await Html5Qrcode.getCameras();
