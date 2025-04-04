@@ -1,67 +1,77 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    const qrResult = document.getElementById('qr-result');
+document.addEventListener('DOMContentLoaded', () => {
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    const resultDiv = document.getElementById('result');
     
-    // 1. Verificar si el navegador soporta la API de cámara
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        qrResult.innerHTML = `
-            <p style="color: red;">Tu navegador no soporta acceso a cámara</p>
-            <p>Por favor usa Chrome o Firefox en Android</p>
-        `;
-        return;
-    }
-
-    // 2. Configuración optimizada para móviles
-    const html5QrCode = new Html5Qrcode("qr-reader");
-    const config = { 
-        fps: 15,
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true,
-        facingMode: "environment"
+    // Configuración optimizada para códigos QR
+    const config = {
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#interactive'),
+            constraints: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: "environment" // Cámara trasera
+            },
+        },
+        decoder: {
+            readers: ["qrcode_reader"],
+            debug: {
+                showCanvas: false,
+                showPatches: false,
+                showFoundPatches: false,
+                showSkeleton: false,
+                showLabels: false,
+                showPatchLabels: false,
+                showRemainingPatchLabels: false,
+                boxFromPatches: {
+                    showTransformed: false,
+                    showTransformedBox: false,
+                    showBB: false
+                }
+            }
+        },
+        locate: true,
+        frequency: 5
     };
 
-    // 3. Función para iniciar el escáner
-    async function startScanner() {
-        // En scanner.js, justo después de startScanner():
-        setTimeout(() => {
-        if (!html5QrCode.isScanning) {
-        handleCameraError(new Error("El escáner no inició automáticamente"));
-        }
-    }, 5000);
-        try {
-            // Obtener lista de cámaras disponibles
-            const cameras = await Html5Qrcode.getCameras();
-            if (cameras.length === 0) {
-                throw new Error("No se encontraron cámaras");
+    // Iniciar el escáner
+    startButton.addEventListener('click', () => {
+        resultDiv.innerHTML = '<p>Iniciando cámara...</p>';
+        
+        Quagga.init(config, function(err) {
+            if (err) {
+                resultDiv.innerHTML = `<p style="color: red;">Error al iniciar cámara: ${err.message}</p>`;
+                console.error(err);
+                return;
             }
-
-            // Iniciar con la cámara trasera (environment)
-            await html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                qrCodeSuccessCallback,
-                qrCodeErrorCallback
-            );
             
-        } catch (error) {
-            handleCameraError(error);
-        }
-    }
+            Quagga.start();
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            resultDiv.innerHTML = '<p>Escaneando códigos QR...</p>';
+        });
 
-    // 4. Callback para códigos escaneados
-    function qrCodeSuccessCallback(decodedText) {
-        html5QrCode.pause();
-        validateTicket(decodedText);
-    }
+        Quagga.onDetected(function(result) {
+            const code = result.codeResult.code;
+            Quagga.stop();
+            validateTicket(code);
+        });
+    });
 
-    // 5. Callback para errores
-    function qrCodeErrorCallback(error) {
-        console.warn("Error al escanear:", error);
-    }
+    // Detener el escáner
+    stopButton.addEventListener('click', () => {
+        Quagga.stop();
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        resultDiv.innerHTML = '<p>Cámara detenida</p>';
+    });
 
-    // 6. Validar el boleto con el servidor
+    // Validar el boleto con el servidor
     async function validateTicket(ticketId) {
         try {
-            qrResult.innerHTML = `<p>Validando boleto: ${ticketId}</p>`;
+            resultDiv.innerHTML = `<p>Validando boleto: ${ticketId}</p>`;
             
             const response = await fetch('/api/validar', {
                 method: 'POST',
@@ -73,48 +83,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             showResult(data.valido, data.mensaje, ticketId);
             
         } catch (error) {
-            qrResult.innerHTML = `<p style="color: red;">Error de conexión</p>`;
+            resultDiv.innerHTML = `<p style="color: red;">Error de conexión</p>`;
         } finally {
-            // Reanudar después de 3 segundos
+            // Permitir reinicio después de 3 segundos
             setTimeout(() => {
-                qrResult.innerHTML = '';
-                html5QrCode.resume();
+                startButton.disabled = false;
+                stopButton.disabled = true;
             }, 3000);
         }
     }
 
-    // 7. Mostrar resultados
+    // Mostrar resultados
     function showResult(isValid, message, ticketId) {
-        qrResult.innerHTML = `
+        resultDiv.innerHTML = `
             <div style="background: ${isValid ? '#2ecc71' : '#e74c3c'}; 
                        color: white; 
                        padding: 15px; 
                        border-radius: 5px;">
-                <h2>${isValid ? '✓ VÁLIDO' : '✖ INVÁLIDO'}</h2>
+                <h2>${isValid ? '✓ BOLETO VÁLIDO' : '✖ BOLETO INVÁLIDO'}</h2>
                 <p>${ticketId}</p>
                 <p>${message}</p>
+                <button onclick="window.location.reload()">Escanear otro</button>
             </div>
         `;
     }
-
-    // 8. Manejo de errores
-    function handleCameraError(error) {
-        console.error("Error de cámara:", error);
-        qrResult.innerHTML = `
-            <div style="color: red; margin: 20px;">
-                <p>No se pudo acceder a la cámara:</p>
-                <p><strong>${error.message}</strong></p>
-                <p>Solución:</p>
-                <ol>
-                    <li>Asegúrate de usar HTTPS</li>
-                    <li>Haz click en el ícono de candado y da permisos de cámara</li>
-                    <li>Prueba en Chrome o Firefox</li>
-                </ol>
-                <button onclick="window.location.reload()">Reintentar</button>
-            </div>
-        `;
-    }
-
-    // Iniciar el escáner
-    startScanner();
 });
