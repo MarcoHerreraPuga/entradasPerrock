@@ -3,44 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validación de Boletos - Perrockers</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Validador de Boletos</title>
+    <!-- Importa la versión más reciente de la librería QR -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
-</head>
-<body>
-    <div class="container">
-        <h1>Validador de Boletos</h1>
-        <p>PERROCKERS EN HUANCAYO - 3 DE MAYO 2024</p>
-        
-        <div id="qr-reader" style="width: 400px; margin: 20px auto;"></div>
-        
-        <div id="resultado">
-            <div class="boleto-valido" id="valido" style="display: none;">
-                <h2>✔ BOLETO VÁLIDO</h2>
-                <p id="codigo-valido"></p>
-            </div>
-            
-            <div class="boleto-invalido" id="invalido" style="display: none;">
-                <h2>✖ BOLETO INVÁLIDO</h2>
-                <p id="mensaje-error"></p>
-            </div>
-        </div>
-    </div>
-
-    <div id="qr-reader">
-        <div class="camera-loading">
-            <p>Cargando cámara...</p>
-        </div>
-    </div>
-    
     <style>
-        .camera-loading {
+        /* Estilos mejorados para móviles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
             padding: 20px;
-            text-align: center;
-            font-style: italic;
-            color: #666;
+            background: #f5f5f5;
+        }
+        #qr-reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            border: 2px solid #d35400;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #qr-reader__dashboard_section_csr {
+            background: #d35400;
+            padding: 10px;
+        }
+        button {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
         }
     </style>
+</head>
+<body>
+    <div id="qr-reader"></div>
+    <div id="qr-result" style="text-align: center;"></div>
 
     <script src="scanner.js"></script>
 </body>

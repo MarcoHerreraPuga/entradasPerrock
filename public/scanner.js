@@ -1,95 +1,114 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const qrReader = new Html5Qrcode('qr-reader');
-    const validoDiv = document.getElementById('valido');
-    const invalidoDiv = document.getElementById('invalido');
-    const codigoValido = document.getElementById('codigo-valido');
-    const mensajeError = document.getElementById('mensaje-error');
+    const qrResult = document.getElementById('qr-result');
+    
+    // 1. Verificar si el navegador soporta la API de cámara
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        qrResult.innerHTML = `
+            <p style="color: red;">Tu navegador no soporta acceso a cámara</p>
+            <p>Por favor usa Chrome o Firefox en Android</p>
+        `;
+        return;
+    }
 
-    // Configuración mejorada para móviles
-    const config = {
-        fps: 10,
+    // 2. Configuración optimizada para móviles
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    const config = { 
+        fps: 15,
         qrbox: { width: 250, height: 250 },
         rememberLastUsedCamera: true,
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-        facingMode: "environment" // Siempre usa cámara trasera
+        facingMode: "environment"
     };
 
-    function mostrarResultado(valido, mensaje, codigo) {
-        validoDiv.style.display = valido ? 'block' : 'none';
-        invalidoDiv.style.display = valido ? 'none' : 'block';
-        
-        if (valido) {
-            codigoValido.textContent = `Boleto: ${codigo}`;
-        } else {
-            mensajeError.textContent = mensaje;
+    // 3. Función para iniciar el escáner
+    async function startScanner() {
+        try {
+            // Obtener lista de cámaras disponibles
+            const cameras = await Html5Qrcode.getCameras();
+            if (cameras.length === 0) {
+                throw new Error("No se encontraron cámaras");
+            }
+
+            // Iniciar con la cámara trasera (environment)
+            await html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                qrCodeSuccessCallback,
+                qrCodeErrorCallback
+            );
+            
+        } catch (error) {
+            handleCameraError(error);
         }
     }
 
-    try {
-        // Intenta obtener una lista de cámaras primero
-        const cameras = await Html5Qrcode.getCameras();
-        if (cameras && cameras.length > 0) {
-            await qrReader.start(
-                cameras[0].id,  // Usa la primera cámara disponible
-                config,
-                async (codigo) => {
-                    qrReader.pause();
-                    try {
-                        const response = await fetch('/api/validar', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo })
-                        });
-                        const data = await response.json();
-                        mostrarResultado(data.valido, data.mensaje, codigo);
-                        
-                        setTimeout(() => {
-                            validoDiv.style.display = 'none';
-                            invalidoDiv.style.display = 'none';
-                            qrReader.resume();
-                        }, 3000);
-                    } catch (error) {
-                        mostrarResultado(false, 'Error de conexión');
-                        qrReader.resume();
-                    }
-                },
-                (mensajeError) => {
-                    console.warn("Advertencia del escáner:", mensajeError);
-                }
-            );
-        } else {
-            throw new Error("No se encontraron cámaras");
+    // 4. Callback para códigos escaneados
+    function qrCodeSuccessCallback(decodedText) {
+        html5QrCode.pause();
+        validateTicket(decodedText);
+    }
+
+    // 5. Callback para errores
+    function qrCodeErrorCallback(error) {
+        console.warn("Error al escanear:", error);
+    }
+
+    // 6. Validar el boleto con el servidor
+    async function validateTicket(ticketId) {
+        try {
+            qrResult.innerHTML = `<p>Validando boleto: ${ticketId}</p>`;
+            
+            const response = await fetch('/api/validar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo: ticketId })
+            });
+            
+            const data = await response.json();
+            showResult(data.valido, data.mensaje, ticketId);
+            
+        } catch (error) {
+            qrResult.innerHTML = `<p style="color: red;">Error de conexión</p>`;
+        } finally {
+            // Reanudar después de 3 segundos
+            setTimeout(() => {
+                qrResult.innerHTML = '';
+                html5QrCode.resume();
+            }, 3000);
         }
-    } catch (error) {
-        console.error("Error al iniciar cámara:", error);
-        document.getElementById('qr-reader').innerHTML = `
-            <div class="camera-error">
+    }
+
+    // 7. Mostrar resultados
+    function showResult(isValid, message, ticketId) {
+        qrResult.innerHTML = `
+            <div style="background: ${isValid ? '#2ecc71' : '#e74c3c'}; 
+                       color: white; 
+                       padding: 15px; 
+                       border-radius: 5px;">
+                <h2>${isValid ? '✓ VÁLIDO' : '✖ INVÁLIDO'}</h2>
+                <p>${ticketId}</p>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+
+    // 8. Manejo de errores
+    function handleCameraError(error) {
+        console.error("Error de cámara:", error);
+        qrResult.innerHTML = `
+            <div style="color: red; margin: 20px;">
                 <p>No se pudo acceder a la cámara:</p>
-                <p>${error.message}</p>
+                <p><strong>${error.message}</strong></p>
+                <p>Solución:</p>
+                <ol>
+                    <li>Asegúrate de usar HTTPS</li>
+                    <li>Haz click en el ícono de candado y da permisos de cámara</li>
+                    <li>Prueba en Chrome o Firefox</li>
+                </ol>
                 <button onclick="window.location.reload()">Reintentar</button>
             </div>
         `;
-        
-        // Estilo para el mensaje de error
-        const style = document.createElement('style');
-        style.textContent = `
-            .camera-error {
-                padding: 20px;
-                text-align: center;
-                color: #fff;
-                background: #e74c3c;
-                border-radius: 5px;
-            }
-            .camera-error button {
-                margin-top: 10px;
-                padding: 8px 15px;
-                background: #fff;
-                color: #e74c3c;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-        `;
-        document.head.appendChild(style);
     }
+
+    // Iniciar el escáner
+    startScanner();
 });
