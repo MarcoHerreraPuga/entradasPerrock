@@ -6,6 +6,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
+// En server.js, antes de las rutas
+app.get('/api/check-environment', (req, res) => {
+    res.json({
+        https: req.secure,
+        host: req.headers.host,
+        userAgent: req.headers['user-agent']
+    });
+});
+
 // Configuración para __dirname en ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
