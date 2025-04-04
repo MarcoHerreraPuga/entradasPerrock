@@ -1,0 +1,39 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+.boleto {
+    width: 8cm;  /* Ancho del boleto */
+    height: 12cm; /* Alto del boleto */
+  }
+
+.container {
+    background: #f9f9f9;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+h1 {
+    color: #d35400;
+}
+
+.boleto-valido {
+    background: #2ecc71;
+    color: white;
+    padding: 20px;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+.boleto-invalido {
+    background: #e74c3c;
+    color: white;
+    padding: 20px;
+    border-radius: 5px;
+    margin-top: 20px;
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validación de Boletos - Perrockers</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Validador de Boletos</h1>
+        <p>PERROCKERS EN HUANCAYO - 3 DE MAYO 2024</p>
+        
+        <div id="qr-reader" style="width: 400px; margin: 20px auto;"></div>
+        
+        <div id="resultado">
+            <div class="boleto-valido" id="valido" style="display: none;">
+                <h2>✔ BOLETO VÁLIDO</h2>
+                <p id="codigo-valido"></p>
+            </div>
+            
+            <div class="boleto-invalido" id="invalido" style="display: none;">
+                <h2>✖ BOLETO INVÁLIDO</h2>
+                <p id="mensaje-error"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="scanner.js"></script>
+</body>
+</html>

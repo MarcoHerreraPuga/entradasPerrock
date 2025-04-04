@@ -1,0 +1,18 @@
+{
+    "name": "perrockers-validacion",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Sistema de validación de boletos para Perrockers en Huancayo",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "init-db": "node initializeDB.js"
+    },
+    "dependencies": {
+        "body-parser": "^1.20.2",
+        "express": "^4.18.2",
+        "html5-qrcode": "^2.3.8",
+        "lowdb": "^5.1.0",
+        "qrcode": "^1.5.4"
+    }
+}
